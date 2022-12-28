@@ -8,11 +8,8 @@ const Validator = {
         this.controls.set(name, new Control(name, rules[name]))
     }
 
-    this.setInitialListeners()
-    return this
-  },
-  setInitialListeners: function () {
-    // in progress
+    this.controls.forEach(control => control.initializeListeners())
+
     return this
   },
   evaluateRules: function (control) {

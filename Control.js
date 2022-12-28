@@ -1,43 +1,9 @@
-const getValueByType = {
-  checkbox: function () {
-    return this.dom.checked 
-      ? this.dom.value.trim() 
-      : null 
-  },
-  radio: function () {
-    return [...this.dom].find(radio => radio.checked)?.value.trim() ?? null
-  },
-  select: function () {
-    return this.dom.selectedIndex !== -1 
-      ? this.dom.value.trim() 
-      : null
-  },
-  multiple: function () {
-    return this.dom.selectedIndex !== -1 
-      ? [...this.dom.selectedOptions].map(opt => opt.value.trim()) 
-      : null
-  },
-  default: function () {
-    return this.dom.value.trim()
-  },
-}
+import getValueByType from './getValueByType.js'
+import Validator from './Validator.js'
 
 function Control(name, rules) {
-  this.name = name
-  this.dom = this.searchDom()
-  this.type = this.defType()
-  this.rules = rules
-  this.passes = false
-  this.getValue = getValueByType[this.type] ?? getValueByType.default
-
-  this.defType = function () {
-    let element = this.dom instanceof Array ? this.dom[0] : this.dom
-
-    return element instanceof HTMLSelectElement && element.getAttribute('multiple')
-        ? 'multiple'
-        : element.getAttribute('type')
-  }
-
+  this.hasMultipleElements = () => this.dom instanceof Array
+  
   this.searchDom = function () {
     let elements = document.querySelectorAll(`[name="${this.name}"]`)
     
@@ -46,29 +12,59 @@ function Control(name, rules) {
           `No existen elementos con el atributo "name" igual a: "${this.name}"`
         )
     }
-
+  
     if (elements.length === 1) {
       return elements[0]
     }
-
+  
     return [...elements]
   }
-  
-  this.update = function () {    
-    if (this.passes) {
-      this.elements.forEach(element => {
-        element.classList.remove('validator-fails')
-        element.classList.add('validator-passes')
-      })
 
-      return this
+  this.defType = function () {
+    let element = this.hasMultipleElements() ? this.dom[0] : this.dom
+
+    return element instanceof HTMLSelectElement && element.getAttribute('multiple')
+        ? 'multiple'
+        : element.getAttribute('type')
+  }
+
+  this.name = name
+  this.dom = this.searchDom()
+  this.type = this.defType()
+  this.rules = rules
+  this.passes = false
+  this.getValue = getValueByType[this.type] ?? getValueByType.default
+
+  
+  this.initializeListeners = function () {
+    if (this.hasMultipleElements()) {
+      this.dom.forEach(el => this.setListeners(el))
+    } else {
+      this.setListeners(this.dom)
     }
 
-    this.elements.forEach(element => {
+    return this
+  }
+
+  this.setListeners = function (element) {
+    element.addEventListener('focus', () => Validator.evaluateRules(this))
+    element.addEventListener('change', () => Validator.evaluateRules(this))
+    element.addEventListener('input', () => Validator.evaluateRules(this))
+  }
+  
+  this.update = function () {
+    let element = this.hasMultipleElements()
+      ? this.dom[0].parentElement
+      : this.dom
+
+    if (this.passes) {
+      element.classList.remove('validator-fails')
+      element.classList.add('validator-passes')
+    } else {
       element.classList.remove('validator-passes')
       element.classList.add('validator-fails')
-    })
-    
+    }
+
     return this
   }
 }
