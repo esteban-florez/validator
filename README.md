@@ -1,2 +1,3 @@
-# validator
-A simple JavaScript input validator, based on Laravel validation rules.
+# Validator
+
+A simple JavaScript input validator, inspired on Laravel validation rules.
